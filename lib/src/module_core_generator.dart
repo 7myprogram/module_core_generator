@@ -268,7 +268,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     return DomainModuleTemplate(
       config: DomainModuleGenerationConfig(
         moduleName: _className,
-        interfaceName: _dataModuleInterfaceName,
+        interfaceName: _domainModuleInterfaceName,
         usecaseNames: usecaseNames,
       ),
     ).toString();
