@@ -110,6 +110,12 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           element: field,
         );
       }
+      if (!Check.hasDefaultConstructor(record[1].toTypeValue())) {
+        throw InvalidGenerationSourceError(
+          '$_className: データソースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          element: field,
+        );
+      }
       _dataSources.add(record);
     }
   }
@@ -139,10 +145,17 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           element: field,
         );
       }
+      if (!Check.hasDefaultConstructor(record[1].toTypeValue())) {
+        throw InvalidGenerationSourceError(
+          '$_className: リポジトリの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          element: field,
+        );
+      }
       _repositories.add(record);
     }
   }
 
+  // データモジュールの出力
   String _writeDataModule() {
     List<(String, String)> dataSourceNames = [];
     for (final dataSource in _dataSources) {
