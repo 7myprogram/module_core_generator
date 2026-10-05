@@ -60,6 +60,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     _importAliasMap = _ImportAliasMap(library);
 
     final dataModuleBuffer = StringBuffer()
+      ..writeln(_writeCore())
       ..writeln(_writeDataModule())
       ..writeln(_writeDomainModule())
       ..writeln(_writePresentationModule());
@@ -237,6 +238,12 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
       _viewBuilders.add(viewBuilder);
     }
+  }
+
+  // コアの出力
+  String _writeCore() {
+    return CoreTemplate(config: CoreGenerationConfig(moduleName: _className))
+        .toString();
   }
 
   // データモジュールの出力
