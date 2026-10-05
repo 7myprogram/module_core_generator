@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -9,20 +10,32 @@ import 'configs/entrypoint.dart';
 import 'templates/entrypoint.dart';
 
 class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
-  // インポートファイルのエイリアスマップ
+  /// インポートファイルのエイリアスマップ
   late final _ImportAliasMap _importAliasMap;
 
-  // 解析対象のクラス名
+  /// 解析対象のクラス名
   late final String _className;
 
-  // DataModuleに設定するインターフェイス名
+  ///
+  /// データモジュール関連の変数
+  ///
+  /// データモジュールに設定するインターフェイス名
   String? _dataModuleInterfaceName;
 
-  // データソースリスト
+  /// データソースリスト
   final List<List<DartObject>> _dataSources = [];
 
-  // リポジトリリスト
+  /// リポジトリリスト
   final List<List<DartObject>> _repositories = [];
+
+  ///
+  /// ドメインモジュール関連の変数
+  ///
+  /// ドメインモジュールに設定するインターフェイス名
+  String? _domainModuleInterfaceName;
+
+  /// ユースケースリスト
+  final List<DartType> _usecases = [];
 
   @override
   generateForAnnotatedElement(
@@ -46,7 +59,9 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     // インポートファイルのエイリアスを取得
     _importAliasMap = _ImportAliasMap(library);
 
-    final dataModuleBuffer = StringBuffer()..writeln(_writeDataModule());
+    final dataModuleBuffer = StringBuffer()
+      ..writeln(_writeDataModule())
+      ..writeln(_writeDomainModule());
 
     return dataModuleBuffer.toString();
   }
@@ -56,7 +71,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     for (final field in fields) {
       switch (field.name) {
         // データモジュールインターフェイス名取得
-        case 'iDataModule':
+        case 'iData':
           _checkAndGetDataModuleInterfaceName(field);
 
         // データソース取得
@@ -66,6 +81,14 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         // リポジトリ取得
         case 'repositories':
           _checkAndGetRepositories(field);
+
+        // ドメインモジュールインターフェイス名取得
+        case 'iDomain':
+          _checkAndGetDomainModuleInterfaceName(field);
+
+        // ユースケース取得
+        case 'usecases':
+          _checkAndGetUsecases(field);
       }
     }
   }
@@ -74,12 +97,27 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   void _checkAndGetDataModuleInterfaceName(FieldElement field) {
     if (!Check.isType(field)) {
       throw InvalidGenerationSourceError(
-        '$_className: iDataModuleの型がTypeでない。',
+        '$_className: iDataの型がTypeでない。',
         element: field,
       );
     }
 
     _dataModuleInterfaceName = field
+        .computeConstantValue()
+        ?.toTypeValue()
+        .toString();
+  }
+
+  // ドメインモジュールのインターフェイス名を取得
+  void _checkAndGetDomainModuleInterfaceName(FieldElement field) {
+    if (!Check.isType(field)) {
+      throw InvalidGenerationSourceError(
+        '$_className: iDomainの型がTypeでない。',
+        element: field,
+      );
+    }
+
+    _domainModuleInterfaceName = field
         .computeConstantValue()
         ?.toTypeValue()
         .toString();
@@ -155,6 +193,41 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     }
   }
 
+  // ユースケースのリストを取得
+  void _checkAndGetUsecases(FieldElement field) {
+    if (!Check.isListOfType(field)) {
+      throw InvalidGenerationSourceError(
+        '$_className: usecasesの型がList<Type>でない。',
+        element: field,
+      );
+    }
+
+    final usecases = field.computeConstantValue()?.toListValue();
+    if (usecases == null) {
+      throw InvalidGenerationSourceError(
+        '$_className: usecasesの内容の取得に失敗。',
+        element: field,
+      );
+    }
+
+    for (int i = 0; i < usecases.length; ++i) {
+      final usecase = usecases[i].toTypeValue();
+      if (usecase == null) {
+        throw InvalidGenerationSourceError(
+          '$_className: usecasesの解析に失敗。',
+          element: field,
+        );
+      }
+      if (!Check.hasDefaultConstructor(usecase)) {
+        throw InvalidGenerationSourceError(
+          '$_className: ユースケースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          element: field,
+        );
+      }
+      _usecases.add(usecase);
+    }
+  }
+
   // データモジュールの出力
   String _writeDataModule() {
     List<(String, String)> dataSourceNames = [];
@@ -185,18 +258,38 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     ).toString();
   }
 
+  // ドメインモジュールの出力
+  String _writeDomainModule() {
+    List<String> usecaseNames = [];
+    for (final usecase in _usecases) {
+      usecaseNames.add(_getClassNameWithAlias(usecase));
+    }
+
+    return DomainModuleTemplate(
+      config: DomainModuleGenerationConfig(
+        moduleName: _className,
+        interfaceName: _dataModuleInterfaceName,
+        usecaseNames: usecaseNames,
+      ),
+    ).toString();
+  }
+
+  // インターフェイスと実装クラスの名前セットの配列を返す。
   (String, String)? _getNameRecord(List<DartObject> objectList) {
-    final first = objectList[0];
-    final second = objectList[1];
+    final iType = objectList[0].toTypeValue();
+    final implType = objectList[1].toTypeValue();
 
-    final interfaceAlias = _importAliasMap.getAlias(first);
-    final interface =
-        "${interfaceAlias == null ? "" : "$interfaceAlias."}${first.toTypeValue().toString()}";
-    final implAlias = _importAliasMap.getAlias(second);
-    final impl =
-        "${implAlias == null ? "" : "$implAlias."}${second.toTypeValue().toString()}";
+    if (iType == null || implType == null) {
+      return null;
+    }
 
-    return (interface, impl);
+    return (_getClassNameWithAlias(iType), _getClassNameWithAlias(implType));
+  }
+
+  // エイリアス付きでクラス名を返す
+  String _getClassNameWithAlias(DartType type) {
+    final alias = _importAliasMap.getAliasByType(type);
+    return "${alias == null ? "" : "$alias."}${type.toString()}";
   }
 }
 
@@ -217,13 +310,11 @@ class _ImportAliasMap {
     }
   }
 
-  String? getAlias(DartObject? object) {
-    final key = object
-        ?.toTypeValue()
-        ?.element
-        ?.library
-        ?.displayString()
-        .replaceAll(RegExp(r'^.* '), "");
+  String? getAliasByType(DartType? object) {
+    final key = object?.element?.library?.displayString().replaceAll(
+      RegExp(r'^.* '),
+      "",
+    );
 
     if (key == null) {
       return null;
