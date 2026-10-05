@@ -7,9 +7,11 @@ class DomainModuleTemplate {
 
   @override
   String toString() {
-    final interfaceName = _config.interfaceName;
+    final interfaceName = "\$I${_config.moduleName}DomainModule";
     return '''
-      final class _\$${_config.moduleName}DomainModule with DomainModule ${interfaceName == null ? '' : 'implements $interfaceName'} {
+      abstract class $interfaceName {}
+
+      final class _\$${_config.moduleName}DomainModule with DomainModule implements $interfaceName {
         @override
         void registerUsecases(UsecaseCollection collection) {
           ${_config.usecaseNames.map((elem) => 'collection.register($elem());').toList().join("\n")}

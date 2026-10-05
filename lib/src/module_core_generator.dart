@@ -19,8 +19,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   ///
   /// データモジュール関連の変数
   ///
-  /// データモジュールに設定するインターフェイス名
-  String? _dataModuleInterfaceName;
 
   /// データソースリスト
   final List<List<DartObject>> _dataSources = [];
@@ -31,8 +29,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   ///
   /// ドメインモジュール関連の変数
   ///
-  /// ドメインモジュールに設定するインターフェイス名
-  String? _domainModuleInterfaceName;
 
   /// ユースケースリスト
   final List<DartType> _usecases = [];
@@ -70,10 +66,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     final fields = element.fields;
     for (final field in fields) {
       switch (field.name) {
-        // データモジュールインターフェイス名取得
-        case 'iData':
-          _checkAndGetDataModuleInterfaceName(field);
-
         // データソース取得
         case 'dataSources':
           _checkAndGetDataSources(field);
@@ -82,45 +74,11 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         case 'repositories':
           _checkAndGetRepositories(field);
 
-        // ドメインモジュールインターフェイス名取得
-        case 'iDomain':
-          _checkAndGetDomainModuleInterfaceName(field);
-
         // ユースケース取得
         case 'usecases':
           _checkAndGetUsecases(field);
       }
     }
-  }
-
-  // データモジュールのインターフェイス名を取得
-  void _checkAndGetDataModuleInterfaceName(FieldElement field) {
-    if (!Check.isType(field)) {
-      throw InvalidGenerationSourceError(
-        '$_className: iDataの型がTypeでない。',
-        element: field,
-      );
-    }
-
-    _dataModuleInterfaceName = field
-        .computeConstantValue()
-        ?.toTypeValue()
-        .toString();
-  }
-
-  // ドメインモジュールのインターフェイス名を取得
-  void _checkAndGetDomainModuleInterfaceName(FieldElement field) {
-    if (!Check.isType(field)) {
-      throw InvalidGenerationSourceError(
-        '$_className: iDomainの型がTypeでない。',
-        element: field,
-      );
-    }
-
-    _domainModuleInterfaceName = field
-        .computeConstantValue()
-        ?.toTypeValue()
-        .toString();
   }
 
   // データソースのリストを取得
@@ -251,7 +209,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     return DataModuleTemplate(
       config: DataModuleGenerationConfig(
         moduleName: _className,
-        interfaceName: _dataModuleInterfaceName,
         dataSourceNames: dataSourceNames,
         repositoryNames: repositoryNames,
       ),
@@ -268,7 +225,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     return DomainModuleTemplate(
       config: DomainModuleGenerationConfig(
         moduleName: _className,
-        interfaceName: _domainModuleInterfaceName,
         usecaseNames: usecaseNames,
       ),
     ).toString();

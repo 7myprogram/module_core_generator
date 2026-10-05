@@ -7,9 +7,11 @@ class DataModuleTemplate {
 
   @override
   String toString() {
-    final interfaceName = _config.interfaceName;
+    final interfaceName = "\$I${_config.moduleName}DataModule";
     return '''
-      final class _\$${_config.moduleName}DataModule with DataModule ${interfaceName == null ? '' : 'implements $interfaceName'} {
+      abstract class $interfaceName {}
+
+      final class _\$${_config.moduleName}DataModule with DataModule implements $interfaceName {
         @override
         void registerDataSources(DataSourceCollection dataSourceCollection) {
           ${_config.dataSourceNames.map((elem) => 'dataSourceCollection.register<${elem.$1}>(${elem.$2}());').toList().join("\n")}
