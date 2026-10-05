@@ -18,6 +18,10 @@ class Check {
         value.type?.getDisplayString() == 'List<(Type, Type)>';
   }
 
+  static bool isSubclassOf(ClassElement element, String targetName) {
+    return element.allSupertypes.any((type) => type.element.name == targetName);
+  }
+
   static bool hasDefaultConstructor(DartType? type) {
     if (type == null) {
       return false;

@@ -19,7 +19,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   ///
   /// データモジュール関連の変数
   ///
-
   /// データソースリスト
   final List<List<DartObject>> _dataSources = [];
 
@@ -29,9 +28,14 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   ///
   /// ドメインモジュール関連の変数
   ///
-
   /// ユースケースリスト
   final List<DartType> _usecases = [];
+
+  ///
+  /// プレゼンテーションモジュール関連の変数
+  ///
+  /// ビュービルダーリスト
+  final List<DartType> _viewBuilders = [];
 
   @override
   generateForAnnotatedElement(
@@ -57,7 +61,8 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
     final dataModuleBuffer = StringBuffer()
       ..writeln(_writeDataModule())
-      ..writeln(_writeDomainModule());
+      ..writeln(_writeDomainModule())
+      ..writeln(_writePresentationModule());
 
     return dataModuleBuffer.toString();
   }
@@ -77,6 +82,10 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         // ユースケース取得
         case 'usecases':
           _checkAndGetUsecases(field);
+
+        // ビュービルダー取得
+        case 'viewBuilders':
+          _checkAndGetViewBuilders(field);
       }
     }
   }
@@ -186,6 +195,50 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     }
   }
 
+  // ビュービルダーのリストを取得
+  void _checkAndGetViewBuilders(FieldElement field) {
+    if (!Check.isListOfType(field)) {
+      throw InvalidGenerationSourceError(
+        '$_className: viewBuildersの型がList<Type>でない。',
+        element: field,
+      );
+    }
+
+    final viewBuilders = field.computeConstantValue()?.toListValue();
+    if (viewBuilders == null) {
+      throw InvalidGenerationSourceError(
+        '$_className: viewBuildersの内容の取得に失敗。',
+        element: field,
+      );
+    }
+
+    for (int i = 0; i < viewBuilders.length; ++i) {
+      final viewBuilder = viewBuilders[i].toTypeValue();
+      if (viewBuilder == null) {
+        throw InvalidGenerationSourceError(
+          '$_className: viewBuildersの解析に失敗。',
+          element: field,
+        );
+      }
+
+      final element = viewBuilder.element;
+      if (element is! ClassElement) {
+        throw InvalidGenerationSourceError(
+          '$_className: viewBuilders内の型はクラスでなければならない。',
+          element: field,
+        );
+      }
+      if (!Check.isSubclassOf(element, 'ViewBuilderAttachment')) {
+        throw InvalidGenerationSourceError(
+          '$_className: viewBuilders内のクラスはViewBuilderAttachmentを継承していなければならない。',
+          element: field,
+        );
+      }
+
+      _viewBuilders.add(viewBuilder);
+    }
+  }
+
   // データモジュールの出力
   String _writeDataModule() {
     List<(String, String)> dataSourceNames = [];
@@ -226,6 +279,33 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
       config: DomainModuleGenerationConfig(
         moduleName: _className,
         usecaseNames: usecaseNames,
+      ),
+    ).toString();
+  }
+
+  // プレゼンテーションモジュールの出力
+  String _writePresentationModule() {
+    List<(String, String)> viewBuilderNames = [];
+
+    for (final viewBuilder in _viewBuilders) {
+      final element = viewBuilder.element as ClassElement;
+      viewBuilderNames.add((
+        _getClassNameWithAlias(viewBuilder),
+        _getClassNameWithAlias(
+          element.allSupertypes
+              .where((elem) {
+                return elem.element.name == 'ViewBuilderAttachment';
+              })
+              .first
+              .typeArguments[0],
+        ),
+      ));
+    }
+
+    return PresentationModuleTemplate(
+      config: PresentationModuleGenerationConfig(
+        moduleName: _className,
+        viewBuilders: viewBuilderNames,
       ),
     ).toString();
   }
