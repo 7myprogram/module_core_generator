@@ -1,1 +1,1 @@
-export 'type_check.dart';
+export 'check.dart';

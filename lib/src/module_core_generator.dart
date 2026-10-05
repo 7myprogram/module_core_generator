@@ -9,7 +9,20 @@ import 'configs/entrypoint.dart';
 import 'templates/entrypoint.dart';
 
 class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
+  // インポートファイルのエイリアスマップ
   late final _ImportAliasMap _importAliasMap;
+
+  // 解析対象のクラス名
+  late final String _className;
+
+  // DataModuleに設定するインターフェイス名
+  String? _dataModuleInterfaceName;
+
+  // データソースリスト
+  final List<List<DartObject>> _dataSources = [];
+
+  // リポジトリリスト
+  final List<List<DartObject>> _repositories = [];
 
   @override
   generateForAnnotatedElement(
@@ -19,121 +32,149 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   ) async {
     if (element is! ClassElement) {
       throw InvalidGenerationSourceError(
-        '@ModuleCore以外の処理不可 ${element.name}',
+        '@ModuleCoreクラス以外の処理不可 ${element.name}',
         element: element,
       );
     }
 
+    _className = element.displayName;
+
     final library = await buildStep.resolver.libraryFor(buildStep.inputId);
+
+    _analyze(element, library);
 
     // インポートファイルのエイリアスを取得
     _importAliasMap = _ImportAliasMap(library);
 
-    final dataModuleBuffer = StringBuffer()
-      ..writeln(_writeDataModule(element, library));
+    final dataModuleBuffer = StringBuffer()..writeln(_writeDataModule());
 
     return dataModuleBuffer.toString();
   }
 
-  String _writeDataModule(ClassElement element, LibraryElement library) {
-    final className = element.displayName;
+  void _analyze(ClassElement element, LibraryElement library) {
     final fields = element.fields;
-
-    String? interfaceName;
-    final List<(String, String)> dataSourceNames = [];
-    final List<(String, String)> repositoryNames = [];
-    for (int i = 0; i < fields.length; ++i) {
-      final field = fields[i];
-
+    for (final field in fields) {
       switch (field.name) {
-        // データモジュールインターフェイス取得
+        // データモジュールインターフェイス名取得
         case 'iDataModule':
-          if (!TypeCheck.isType(field)) {
-            throw InvalidGenerationSourceError(
-              '$className: iDataModuleの型がTypeでない。',
-              element: element,
-            );
-          }
-          interfaceName = field
-              .computeConstantValue()
-              ?.toTypeValue()
-              .toString();
+          _checkAndGetDataModuleInterfaceName(field);
 
+        // データソース取得
         case 'dataSources':
-          if (!TypeCheck.isListOfRecordTypeType(field)) {
-            throw InvalidGenerationSourceError(
-              '$className: dataSourcesの型がList<(Type,Type)>でない。',
-              element: element,
-            );
-          }
+          _checkAndGetDataSources(field);
 
-          final dataSources = field.computeConstantValue()?.toListValue();
-          if (dataSources == null) {
-            throw InvalidGenerationSourceError(
-              '$className: dataSourcesの内容の取得に失敗。',
-              element: element,
-            );
-          }
-
-          for (int i = 0; i < dataSources.length; ++i) {
-            final names = _getNameRecord(dataSources[i]);
-            if (names == null) {
-              throw InvalidGenerationSourceError(
-                '$className: dataSourcesの要素の解析に失敗。',
-                element: element,
-              );
-            }
-            dataSourceNames.add(names);
-          }
-
+        // リポジトリ取得
         case 'repositories':
-          if (!TypeCheck.isListOfRecordTypeType(field)) {
-            throw InvalidGenerationSourceError(
-              '$className: repositoriesの型がList<(Type,Type)>でない。',
-              element: element,
-            );
-          }
-
-          final repositories = field.computeConstantValue()?.toListValue();
-          if (repositories == null) {
-            throw InvalidGenerationSourceError(
-              '$className: repositoriesの内容の取得に失敗。',
-              element: element,
-            );
-          }
-
-          for (int i = 0; i < repositories.length; ++i) {
-            final names = _getNameRecord(repositories[i]);
-            if (names == null) {
-              throw InvalidGenerationSourceError(
-                '$className: repositoriesの要素の解析に失敗。',
-                element: element,
-              );
-            }
-            repositoryNames.add(names);
-          }
+          _checkAndGetRepositories(field);
       }
+    }
+  }
+
+  // データモジュールのインターフェイス名を取得
+  void _checkAndGetDataModuleInterfaceName(FieldElement field) {
+    if (!Check.isType(field)) {
+      throw InvalidGenerationSourceError(
+        '$_className: iDataModuleの型がTypeでない。',
+        element: field,
+      );
+    }
+
+    _dataModuleInterfaceName = field
+        .computeConstantValue()
+        ?.toTypeValue()
+        .toString();
+  }
+
+  // データソースのリストを取得
+  void _checkAndGetDataSources(FieldElement field) {
+    if (!Check.isListOfRecordTypeType(field)) {
+      throw InvalidGenerationSourceError(
+        '$_className: dataSourcesの型がList<(Type,Type)>でない。',
+        element: field,
+      );
+    }
+
+    final dataSources = field.computeConstantValue()?.toListValue();
+    if (dataSources == null) {
+      throw InvalidGenerationSourceError(
+        '$_className: dataSourcesの内容の取得に失敗。',
+        element: field,
+      );
+    }
+
+    for (int i = 0; i < dataSources.length; ++i) {
+      final record = dataSources[i].toRecordValue()?.positional;
+      if (record == null) {
+        throw InvalidGenerationSourceError(
+          '$_className: dataSourcesの解析に失敗。',
+          element: field,
+        );
+      }
+      _dataSources.add(record);
+    }
+  }
+
+  // リポジトリのリストを取得
+  void _checkAndGetRepositories(FieldElement field) {
+    if (!Check.isListOfRecordTypeType(field)) {
+      throw InvalidGenerationSourceError(
+        '$_className: repositoriesの型がList<(Type,Type)>でない。',
+        element: field,
+      );
+    }
+
+    final repositories = field.computeConstantValue()?.toListValue();
+    if (repositories == null) {
+      throw InvalidGenerationSourceError(
+        '$_className: repositoriesの内容の取得に失敗。',
+        element: field,
+      );
+    }
+
+    for (int i = 0; i < repositories.length; ++i) {
+      final record = repositories[i].toRecordValue()?.positional;
+      if (record == null) {
+        throw InvalidGenerationSourceError(
+          '$_className: repositoriesの解析に失敗。',
+          element: field,
+        );
+      }
+      _repositories.add(record);
+    }
+  }
+
+  String _writeDataModule() {
+    List<(String, String)> dataSourceNames = [];
+    for (final dataSource in _dataSources) {
+      final names = _getNameRecord(dataSource);
+      if (names == null) {
+        throw InvalidGenerationSourceError('$_className: データソースの名前取得に失敗。');
+      }
+      dataSourceNames.add(names);
+    }
+
+    List<(String, String)> repositoryNames = [];
+    for (final repository in _repositories) {
+      final names = _getNameRecord(repository);
+      if (names == null) {
+        throw InvalidGenerationSourceError('$_className: リポジトリの名前取得に失敗。');
+      }
+      repositoryNames.add(names);
     }
 
     return DataModuleTemplate(
       config: DataModuleGenerationConfig(
-        moduleName: className,
-        interfaceName: interfaceName,
+        moduleName: _className,
+        interfaceName: _dataModuleInterfaceName,
         dataSourceNames: dataSourceNames,
         repositoryNames: repositoryNames,
       ),
     ).toString();
   }
 
-  (String, String)? _getNameRecord(DartObject object) {
-    final record = object.toRecordValue();
-
-    final first = record?.positional[0];
-    final second = record?.positional[1];
-
-    if (first == null || second == null) {
-      return null;
-    }
+  (String, String)? _getNameRecord(List<DartObject> objectList) {
+    final first = objectList[0];
+    final second = objectList[1];
 
     final interfaceAlias = _importAliasMap.getAlias(first);
     final interface =
