@@ -9,19 +9,17 @@ class DataModuleTemplate {
   String toString() {
     final interfaceName = _config.interfaceName;
     return '''
-      final class _\$${_config.moduleName}DataModule with DataModule ${interfaceName == null ? '' : 'implements $interfaceName'} {} 
-''';
+      final class _\$${_config.moduleName}DataModule with DataModule ${interfaceName == null ? '' : 'implements $interfaceName'} {
+        @override
+        void registerDataSources(DataSourceCollection dataSourceCollection) {
+          ${_config.dataSourceNames.map((elem) => 'dataSourceCollection.register<${elem.$1}>(${elem.$2}());').toList().join("\n")}
+        }
+
+        @override
+        void registerRepositories(RepositoryCollection repositoryCollection) {
+          ${_config.repositoryNames.map((elem) => 'repositoryCollection.register<${elem.$1}>(${elem.$2}());').toList().join("\n")}
+        }
+      } 
+    ''';
   }
 }
-/* 
-print(element.fields[0].name);
-    final dataSources = element.fields[0].computeConstantValue();
-    final temp = dataSources!.toListValue();
-
-    for (int i = 0; i < temp!.length; ++i) {
-      print(temp[i]);
-      final t = temp[i].toTypeValue();
-      final c = t!.element as ClassElement?;
-      print(c?.interfaces);
-    }
- */

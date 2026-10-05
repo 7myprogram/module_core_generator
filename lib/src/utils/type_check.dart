@@ -5,4 +5,10 @@ class TypeCheck {
     final value = element.computeConstantValue();
     return value != null && value.type?.getDisplayString() == 'Type';
   }
+
+  static bool isListOfRecordTypeType(FieldElement element) {
+    final value = element.computeConstantValue();
+    return value != null &&
+        value.type?.getDisplayString() == 'List<(Type, Type)>';
+  }
 }
