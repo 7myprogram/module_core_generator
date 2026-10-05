@@ -11,7 +11,7 @@ class PresentationModuleTemplate {
     final viewBuilders = _config.viewBuilders;
     return '''
       abstract class $interfaceName {
-        ${viewBuilders.map((elem) => "${_makeBuildScreenFunctionDefinition(elem.$2)};").toList().join("\n")}
+        ${viewBuilders.map((elem) => "${_makeBuildScreenFunctionDefinition(elem.$1, elem.$2)};").toList().join("\n")}
       }
 
       final class _\$${_config.moduleName}PresentationModule with PresentationModule implements $interfaceName {
@@ -22,7 +22,7 @@ class PresentationModuleTemplate {
 
         ${viewBuilders.map((elem) => '''
           @override
-          ${_makeBuildScreenFunctionDefinition(elem.$2)} {
+          ${_makeBuildScreenFunctionDefinition(elem.$1, elem.$2)} {
             return getViewBuilder<${elem.$1}>().buildScreen(args);
           }
           ''').toList().join("\n")}
@@ -30,7 +30,7 @@ class PresentationModuleTemplate {
     ''';
   }
 
-  String _makeBuildScreenFunctionDefinition(String screen) {
-    return "$screen build${screen.replaceAll(RegExp(r'^.*\.'), '')}(dynamic args)";
+  String _makeBuildScreenFunctionDefinition(String builder, String screen) {
+    return "$screen build${screen.replaceAll(RegExp(r'^.*\.'), '')}By${builder.replaceAll(RegExp(r'^.*\.'), '')}(dynamic args)";
   }
 }
