@@ -1,20 +1,13 @@
 import 'package:module_core_annotation/module_core_annotation.dart';
 import 'package:module_core/module_core.dart';
 
-import 'data_sources/interfaces/data_source1.dart' as i_data_source;
-import 'data_sources/interfaces/data_source2.dart' as i_data_source;
-import 'data_sources/implementations/data_source1.dart' as data_source_impl;
-import 'data_sources/implementations/data_source2.dart' as data_source_impl;
-import 'repositories/interfaces/repository1.dart' as i_repository;
-import 'repositories/interfaces/repository2.dart' as i_repository;
-import 'repositories/implementations/repository1.dart' as repository_impl;
-import 'repositories/implementations/repository2.dart' as repository_impl;
-import 'usecases/usecase1.dart' as usecase;
-import 'usecases/usecase2.dart';
-import 'usecases/usecase3.dart';
-import 'view_builders/view_builder1.dart' as view_builder;
-import 'view_builders/view_builder2.dart';
-import 'view_builders/view_builder3.dart';
+import 'data_sources/interfaces/entrypoint.dart' as i_data_source;
+import 'data_sources/implementations/entrypoint.dart' as data_source_impl;
+import 'repositories/interfaces/entrypoint.dart' as i_repository;
+import 'repositories/implementations/entrypoint.dart' as repository_impl;
+import 'usecases/entrypoint.dart';
+import 'view_builders/entrypoint.dart';
+
 part 'user.module_core.dart';
 
 @ModuleCore()
@@ -30,12 +23,8 @@ class UserModule extends $UserModuleCore {
   ];
 
   /// ドメイン層設定
-  static const usecases = [usecase.Usecase1, Usecase2, Usecase3];
+  static const usecases = [Usecase1, Usecase2, Usecase3];
 
   /// プレゼンテーション層設定
-  static const viewBuilders = [
-    view_builder.ViewBuilder1,
-    ViewBuilder2,
-    ViewBuilder3,
-  ];
+  static const viewBuilders = [ViewBuilder1, ViewBuilder2, ViewBuilder3];
 }
