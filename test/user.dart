@@ -16,6 +16,7 @@ class UserModule extends $UserModuleCore {
   static const dataSources = [
     (i_data_source.DataSource1, data_source_impl.DataSource1),
     (i_data_source.DataSource2, data_source_impl.DataSource2),
+    (i_data_source.DataSource3, data_source_impl.DataSource3),
   ];
   static const repositories = [
     (i_repository.Repository1, repository_impl.Repository1),

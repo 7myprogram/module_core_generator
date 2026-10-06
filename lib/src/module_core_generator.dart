@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
@@ -337,31 +338,49 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 }
 
 class _ImportAliasMap {
-  final Map<String, String?> map = {};
+  final Map<String, String> map = {};
 
   _ImportAliasMap(LibraryElement libraryElement) {
-    final libraryImports = libraryElement.firstFragment.libraryImports;
-    for (int i = 0; i < libraryImports.length; ++i) {
-      final importData = libraryImports[i];
-      final alias = importData.prefix?.name;
+    for (final libraryImport in libraryElement.firstFragment.libraryImports) {
+      final key = libraryImport.importedLibrary?.identifier;
+      final alias = libraryImport.prefix?.name;
 
-      if (alias == null) {
+      if (key == null || alias == null) {
         continue;
       }
 
-      map[importData.toString().replaceAll(RegExp(r'^.* '), "")] = alias;
+      map[key] = alias;
+      for (final fileName in _getAllExportFileNames(
+        libraryImport.importedLibrary,
+      )) {
+        map[fileName] = alias;
+      }
     }
+    print(map);
   }
 
   String? getAliasByType(DartType? object) {
-    final key = object?.element?.library?.displayString().replaceAll(
-      RegExp(r'^.* '),
-      "",
-    );
-
+    final key = object?.element?.library?.identifier;
     if (key == null) {
       return null;
     }
     return map[key];
+  }
+
+  // 指定されたファイルでexportされているファイル名を再帰的に取得する
+  static List<String> _getAllExportFileNames(LibraryElement? library) {
+    if (library == null) {
+      return [];
+    }
+
+    final exportList = <String>[];
+    for (final libraryExport in library.firstFragment.libraryExports) {
+      final temp = libraryExport.exportedLibrary?.identifier;
+      if (temp != null) {
+        exportList.add(temp);
+      }
+      exportList.addAll(_getAllExportFileNames(libraryExport.exportedLibrary));
+    }
+    return exportList;
   }
 }
