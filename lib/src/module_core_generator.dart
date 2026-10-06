@@ -355,7 +355,6 @@ class _ImportAliasMap {
         map[fileName] = alias;
       }
     }
-    print(map);
   }
 
   String? getAliasByType(DartType? object) {
