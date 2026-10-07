@@ -1,19 +1,21 @@
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:path/path.dart' as package_path;
 
 import 'import_alias_map.dart';
 
 class AnalyzedDartType {
-  static final fileSet = <String>{};
+  static final _analyzedDartTypeList = <AnalyzedDartType>[];
   final DartType value;
-  final String? fileName;
+  final LibraryElement? library;
   final String? alias;
 
   AnalyzedDartType({required this.value})
-    : fileName = value.element?.library?.identifier,
+    : library = value.element?.library,
       alias = _getAlias(value) {
-    final temp = fileName;
+    final temp = library;
     if (temp != null) {
-      fileSet.add(temp);
+      _analyzedDartTypeList.add(this);
     }
   }
 
@@ -22,5 +24,41 @@ class AnalyzedDartType {
 
   static String? _getAlias(DartType type) {
     return ImportAliasMap().getAliasByType(type);
+  }
+
+  static String getImportLines(String outputDirPath) {
+    final registeredPath = <String>{};
+    final Map<String, String?> importMap = {};
+    for (final type in _analyzedDartTypeList) {
+      final library = type.library;
+      if (library == null) {
+        continue;
+      }
+
+      String path = "";
+      if (RegExp(r'^package').hasMatch(library.identifier)) {
+        path = library.identifier;
+      } else if (RegExp(r'^asset').hasMatch(library.identifier)) {
+        path = package_path
+            .relative(library.uri.path, from: outputDirPath)
+            .replaceAll(r'\', '/');
+      } else {
+        path = library.uri.path;
+      }
+
+      if (registeredPath.contains(path)) {
+        continue;
+      }
+      importMap[path] = type.alias;
+      registeredPath.add(path);
+    }
+
+    String importLines = "import 'package:module_core/module_core.dart';\n";
+    for (final entry in importMap.entries) {
+      importLines +=
+          "import '${entry.key}${entry.value == null ? "';\n" : "' as ${entry.value};\n"}";
+    }
+
+    return importLines;
   }
 }

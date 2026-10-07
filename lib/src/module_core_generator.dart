@@ -57,6 +57,11 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     _analyze(element, library);
 
     final dataModuleBuffer = StringBuffer()
+      ..writeln(
+        AnalyzedDartType.getImportLines(
+          library.uri.path.replaceAll(RegExp(r'/[^/]+$'), ''),
+        ),
+      )
       ..writeln(_writeCore())
       ..writeln(_writeDataModule())
       ..writeln(_writeDomainModule())

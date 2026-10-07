@@ -1,0 +1,1 @@
+class Usecase4 {}
