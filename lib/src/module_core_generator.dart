@@ -3,7 +3,7 @@ import 'package:source_gen/source_gen.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:module_core_annotation/module_core_annotation.dart';
 
-import 'utils/entrypoint.dart';
+import 'utils/check.dart';
 import 'configs/entrypoint.dart';
 import 'templates/entrypoint.dart';
 import 'helpers/import_alias_map.dart';

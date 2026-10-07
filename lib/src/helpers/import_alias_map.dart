@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:module_core_generator/src/utils/library.dart';
 
 class ImportAliasMap {
   static final ImportAliasMap _instance = ImportAliasMap._();
@@ -27,9 +28,9 @@ class ImportAliasMap {
       }
 
       map[key] = alias;
-      for (final fileName in _getAllExportFileNames(
+      for (final fileName in Library.getAllExportFiles(
         libraryImport.importedLibrary,
-      )) {
+      ).map((elem) => elem.identifier).toList()) {
         map[fileName] = alias;
       }
     }
@@ -43,22 +44,5 @@ class ImportAliasMap {
       return null;
     }
     return map[key];
-  }
-
-  // 指定されたファイルでexportされているファイル名を再帰的に取得する
-  static List<String> _getAllExportFileNames(LibraryElement? library) {
-    if (library == null) {
-      return [];
-    }
-
-    final exportList = <String>[];
-    for (final libraryExport in library.firstFragment.libraryExports) {
-      final temp = libraryExport.exportedLibrary?.identifier;
-      if (temp != null) {
-        exportList.add(temp);
-      }
-      exportList.addAll(_getAllExportFileNames(libraryExport.exportedLibrary));
-    }
-    return exportList;
   }
 }
