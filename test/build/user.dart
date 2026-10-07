@@ -10,7 +10,7 @@ import 'repositories/implementations/entrypoint.dart' as repository_impl;
 import 'usecases/entrypoint.dart';
 import 'view_builders/entrypoint.dart';
 
-export 'user.module_core.dart';
+part 'user.module_core.dart';
 
 @ModuleCore()
 class UserModule {

@@ -13,24 +13,15 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   /// 解析対象のクラス名
   late final String _className;
 
-  ///
-  /// データモジュール関連の変数
-  ///
   /// データソースリスト
   final List<(AnalyzedDartType, AnalyzedDartType)> _dataSources = [];
 
   /// リポジトリリスト
   final List<(AnalyzedDartType, AnalyzedDartType)> _repositories = [];
 
-  ///
-  /// ドメインモジュール関連の変数
-  ///
   /// ユースケースリスト
   final List<AnalyzedDartType> _usecases = [];
 
-  ///
-  /// プレゼンテーションモジュール関連の変数
-  ///
   /// ビュービルダー/Screenリスト
   final List<(AnalyzedDartType, AnalyzedDartType)> _viewBuilderAndScreens = [];
 
@@ -57,11 +48,6 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     _analyze(element, library);
 
     final dataModuleBuffer = StringBuffer()
-      ..writeln(
-        AnalyzedDartType.getImportLines(
-          library.uri.path.replaceAll(RegExp(r'/[^/]+$'), ''),
-        ),
-      )
       ..writeln(_writeCore())
       ..writeln(_writeDataModule())
       ..writeln(_writeDomainModule())

@@ -41,11 +41,4 @@ class Check {
 
     return false;
   }
-
-  static bool exportFiles(LibraryElement? library) {
-    if (library == null) {
-      return false;
-    }
-    return library.firstFragment.libraryExports.isNotEmpty;
-  }
 }
