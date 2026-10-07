@@ -280,20 +280,18 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   String _writeDataModule() {
     List<(String, String)> dataSourceNames = [];
     for (final dataSource in _dataSources) {
-      final names = _getNameRecord(dataSource);
-      if (names == null) {
-        throw InvalidGenerationSourceError('$_className: データソースの名前取得に失敗。');
-      }
-      dataSourceNames.add(names);
+      dataSourceNames.add((
+        dataSource.$1.nameWithAlias,
+        dataSource.$2.nameWithAlias,
+      ));
     }
 
     List<(String, String)> repositoryNames = [];
     for (final repository in _repositories) {
-      final names = _getNameRecord(repository);
-      if (names == null) {
-        throw InvalidGenerationSourceError('$_className: リポジトリの名前取得に失敗。');
-      }
-      repositoryNames.add(names);
+      repositoryNames.add((
+        repository.$1.nameWithAlias,
+        repository.$2.nameWithAlias,
+      ));
     }
 
     return DataModuleTemplate(
@@ -337,12 +335,5 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         viewBuilders: viewBuilderNames,
       ),
     ).toString();
-  }
-
-  // インターフェイスと実装クラスの名前セットの配列を返す。
-  (String, String)? _getNameRecord(
-    (AnalyzedDartType, AnalyzedDartType) typeRecord,
-  ) {
-    return (typeRecord.$1.nameWithAlias, typeRecord.$2.nameWithAlias);
   }
 }
