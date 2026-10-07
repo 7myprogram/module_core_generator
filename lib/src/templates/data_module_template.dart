@@ -14,12 +14,12 @@ class DataModuleTemplate {
       final class _\$${_config.moduleName}DataModule with DataModule implements $interfaceName {
         @override
         void registerDataSources(DataSourceCollection dataSourceCollection) {
-          ${_config.dataSourceNames.map((elem) => 'dataSourceCollection.register<${elem.$1}>(${elem.$2}());').toList().join("\n")}
+          ${_config.dataSources.map((elem) => 'dataSourceCollection.register<${elem.$1.nameWithAlias}>(${elem.$2.nameWithAlias}());').toList().join("\n")}
         }
 
         @override
         void registerRepositories(RepositoryCollection repositoryCollection) {
-          ${_config.repositoryNames.map((elem) => 'repositoryCollection.register<${elem.$1}>(${elem.$2}());').toList().join("\n")}
+          ${_config.repositories.map((elem) => 'repositoryCollection.register<${elem.$1.nameWithAlias}>(${elem.$2.nameWithAlias}());').toList().join("\n")}
         }
       } 
     ''';

@@ -32,7 +32,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   /// プレゼンテーションモジュール関連の変数
   ///
   /// ビュービルダー/Screenリスト
-  final List<(AnalyzedDartType, AnalyzedDartType)> _viewBuilders = [];
+  final List<(AnalyzedDartType, AnalyzedDartType)> _viewBuilderAndScreens = [];
 
   @override
   generateForAnnotatedElement(
@@ -261,7 +261,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         );
       }
 
-      _viewBuilders.add((
+      _viewBuilderAndScreens.add((
         AnalyzedDartType(value: viewBuilder),
         AnalyzedDartType(
           value: element.allSupertypes
@@ -283,61 +283,31 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
   // データモジュールの出力
   String _writeDataModule() {
-    List<(String, String)> dataSourceNames = [];
-    for (final dataSource in _dataSources) {
-      dataSourceNames.add((
-        dataSource.$1.nameWithAlias,
-        dataSource.$2.nameWithAlias,
-      ));
-    }
-
-    List<(String, String)> repositoryNames = [];
-    for (final repository in _repositories) {
-      repositoryNames.add((
-        repository.$1.nameWithAlias,
-        repository.$2.nameWithAlias,
-      ));
-    }
-
     return DataModuleTemplate(
       config: DataModuleGenerationConfig(
         moduleName: _className,
-        dataSourceNames: dataSourceNames,
-        repositoryNames: repositoryNames,
+        dataSources: _dataSources,
+        repositories: _repositories,
       ),
     ).toString();
   }
 
   // ドメインモジュールの出力
   String _writeDomainModule() {
-    List<String> usecaseNames = [];
-    for (final usecase in _usecases) {
-      usecaseNames.add(usecase.nameWithAlias);
-    }
-
     return DomainModuleTemplate(
       config: DomainModuleGenerationConfig(
         moduleName: _className,
-        usecaseNames: usecaseNames,
+        usecases: _usecases,
       ),
     ).toString();
   }
 
   // プレゼンテーションモジュールの出力
   String _writePresentationModule() {
-    List<(String, String)> viewBuilderNames = [];
-
-    for (final viewBuilder in _viewBuilders) {
-      viewBuilderNames.add((
-        viewBuilder.$1.nameWithAlias,
-        viewBuilder.$2.nameWithAlias,
-      ));
-    }
-
     return PresentationModuleTemplate(
       config: PresentationModuleGenerationConfig(
         moduleName: _className,
-        viewBuilders: viewBuilderNames,
+        viewBuilderAndScreens: _viewBuilderAndScreens,
       ),
     ).toString();
   }

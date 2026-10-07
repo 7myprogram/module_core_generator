@@ -14,7 +14,7 @@ class DomainModuleTemplate {
       final class _\$${_config.moduleName}DomainModule with DomainModule implements $interfaceName {
         @override
         void registerUsecases(UsecaseCollection collection) {
-          ${_config.usecaseNames.map((elem) => 'collection.register($elem());').toList().join("\n")}
+          ${_config.usecases.map((elem) => 'collection.register(${elem.nameWithAlias}());').toList().join("\n")}
         }
       } 
     ''';

@@ -8,22 +8,22 @@ class PresentationModuleTemplate {
   @override
   String toString() {
     final interfaceName = "\$I${_config.moduleName}PresentationModule";
-    final viewBuilders = _config.viewBuilders;
+    final viewBuilderAndScreens = _config.viewBuilderAndScreens;
     return '''
       abstract class $interfaceName {
-        ${viewBuilders.map((elem) => "${_makeBuildScreenFunctionDefinition(elem.$1, elem.$2)};").toList().join("\n")}
+        ${viewBuilderAndScreens.map((elem) => "${_makeBuildScreenFunctionDefinition(elem.$1.nameWithAlias, elem.$2.nameWithAlias)};").toList().join("\n")}
       }
 
       final class _\$${_config.moduleName}PresentationModule with PresentationModule implements $interfaceName {
         @override
         void registerViewBuilder(ViewBuilderCollection collection) {
-          ${viewBuilders.map((elem) => "collection.register(${elem.$1}());").toList().join("\n")}
+          ${viewBuilderAndScreens.map((elem) => "collection.register(${elem.$1.nameWithAlias}());").toList().join("\n")}
         }
 
-        ${viewBuilders.map((elem) => '''
+        ${viewBuilderAndScreens.map((elem) => '''
           @override
-          ${_makeBuildScreenFunctionDefinition(elem.$1, elem.$2)} {
-            return getViewBuilder<${elem.$1}>().buildScreen(args);
+          ${_makeBuildScreenFunctionDefinition(elem.$1.nameWithAlias, elem.$2.nameWithAlias)} {
+            return getViewBuilder<${elem.$1.nameWithAlias}>().buildScreen(args);
           }
           ''').toList().join("\n")}
       } 
