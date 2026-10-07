@@ -1,18 +1,15 @@
-import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/constant/value.dart';
 import 'package:module_core_annotation/module_core_annotation.dart';
 
 import 'utils/entrypoint.dart';
 import 'configs/entrypoint.dart';
 import 'templates/entrypoint.dart';
+import 'helpers/import_alias_map.dart';
+import 'helpers/analyzed_dart_type.dart';
 
 class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
-  /// インポートファイルのエイリアスマップ
-  late final _ImportAliasMap _importAliasMap;
-
   /// 解析対象のクラス名
   late final String _className;
 
@@ -20,22 +17,22 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   /// データモジュール関連の変数
   ///
   /// データソースリスト
-  final List<List<DartObject>> _dataSources = [];
+  final List<(AnalyzedDartType, AnalyzedDartType)> _dataSources = [];
 
   /// リポジトリリスト
-  final List<List<DartObject>> _repositories = [];
+  final List<(AnalyzedDartType, AnalyzedDartType)> _repositories = [];
 
   ///
   /// ドメインモジュール関連の変数
   ///
   /// ユースケースリスト
-  final List<DartType> _usecases = [];
+  final List<AnalyzedDartType> _usecases = [];
 
   ///
   /// プレゼンテーションモジュール関連の変数
   ///
-  /// ビュービルダーリスト
-  final List<DartType> _viewBuilders = [];
+  /// ビュービルダー/Screenリスト
+  final List<(AnalyzedDartType, AnalyzedDartType)> _viewBuilders = [];
 
   @override
   generateForAnnotatedElement(
@@ -54,10 +51,10 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
     final library = await buildStep.resolver.libraryFor(buildStep.inputId);
 
-    _analyze(element, library);
-
     // インポートファイルのエイリアスを取得
-    _importAliasMap = _ImportAliasMap(library);
+    ImportAliasMap().init(library);
+
+    _analyze(element, library);
 
     final dataModuleBuffer = StringBuffer()
       ..writeln(_writeCore())
@@ -110,7 +107,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
     for (int i = 0; i < dataSources.length; ++i) {
       final record = dataSources[i].toRecordValue()?.positional;
-      if (record == null) {
+      if (record == null || record.length < 2) {
         throw InvalidGenerationSourceError(
           '$_className: dataSourcesの解析に失敗。',
           element: field,
@@ -122,7 +119,19 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           element: field,
         );
       }
-      _dataSources.add(record);
+      final first = record[0].toTypeValue();
+      final second = record[1].toTypeValue();
+      if (first == null || second == null) {
+        throw InvalidGenerationSourceError(
+          '$_className: dataSourcesの型変換に失敗。',
+          element: field,
+        );
+      }
+
+      _dataSources.add((
+        AnalyzedDartType(value: first),
+        AnalyzedDartType(value: second),
+      ));
     }
   }
 
@@ -145,7 +154,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
     for (int i = 0; i < repositories.length; ++i) {
       final record = repositories[i].toRecordValue()?.positional;
-      if (record == null) {
+      if (record == null || record.length < 2) {
         throw InvalidGenerationSourceError(
           '$_className: repositoriesの解析に失敗。',
           element: field,
@@ -157,7 +166,18 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           element: field,
         );
       }
-      _repositories.add(record);
+      final first = record[0].toTypeValue();
+      final second = record[1].toTypeValue();
+      if (first == null || second == null) {
+        throw InvalidGenerationSourceError(
+          '$_className: repositoriesの型変換に失敗。',
+          element: field,
+        );
+      }
+      _repositories.add((
+        AnalyzedDartType(value: first),
+        AnalyzedDartType(value: second),
+      ));
     }
   }
 
@@ -192,7 +212,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           element: field,
         );
       }
-      _usecases.add(usecase);
+      _usecases.add(AnalyzedDartType(value: usecase));
     }
   }
 
@@ -236,7 +256,17 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         );
       }
 
-      _viewBuilders.add(viewBuilder);
+      _viewBuilders.add((
+        AnalyzedDartType(value: viewBuilder),
+        AnalyzedDartType(
+          value: element.allSupertypes
+              .where((elem) {
+                return elem.element.name == 'ViewBuilderAttachment';
+              })
+              .first
+              .typeArguments[0],
+        ),
+      ));
     }
   }
 
@@ -279,7 +309,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   String _writeDomainModule() {
     List<String> usecaseNames = [];
     for (final usecase in _usecases) {
-      usecaseNames.add(_getClassNameWithAlias(usecase));
+      usecaseNames.add(usecase.nameWithAlias);
     }
 
     return DomainModuleTemplate(
@@ -295,17 +325,9 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     List<(String, String)> viewBuilderNames = [];
 
     for (final viewBuilder in _viewBuilders) {
-      final element = viewBuilder.element as ClassElement;
       viewBuilderNames.add((
-        _getClassNameWithAlias(viewBuilder),
-        _getClassNameWithAlias(
-          element.allSupertypes
-              .where((elem) {
-                return elem.element.name == 'ViewBuilderAttachment';
-              })
-              .first
-              .typeArguments[0],
-        ),
+        viewBuilder.$1.nameWithAlias,
+        viewBuilder.$2.nameWithAlias,
       ));
     }
 
@@ -318,67 +340,9 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   }
 
   // インターフェイスと実装クラスの名前セットの配列を返す。
-  (String, String)? _getNameRecord(List<DartObject> objectList) {
-    final iType = objectList[0].toTypeValue();
-    final implType = objectList[1].toTypeValue();
-
-    if (iType == null || implType == null) {
-      return null;
-    }
-
-    return (_getClassNameWithAlias(iType), _getClassNameWithAlias(implType));
-  }
-
-  // エイリアス付きでクラス名を返す
-  String _getClassNameWithAlias(DartType type) {
-    final alias = _importAliasMap.getAliasByType(type);
-    return "${alias == null ? "" : "$alias."}${type.toString()}";
-  }
-}
-
-class _ImportAliasMap {
-  final Map<String, String> map = {};
-
-  _ImportAliasMap(LibraryElement libraryElement) {
-    for (final libraryImport in libraryElement.firstFragment.libraryImports) {
-      final key = libraryImport.importedLibrary?.identifier;
-      final alias = libraryImport.prefix?.name;
-
-      if (key == null || alias == null) {
-        continue;
-      }
-
-      map[key] = alias;
-      for (final fileName in _getAllExportFileNames(
-        libraryImport.importedLibrary,
-      )) {
-        map[fileName] = alias;
-      }
-    }
-  }
-
-  String? getAliasByType(DartType? object) {
-    final key = object?.element?.library?.identifier;
-    if (key == null) {
-      return null;
-    }
-    return map[key];
-  }
-
-  // 指定されたファイルでexportされているファイル名を再帰的に取得する
-  static List<String> _getAllExportFileNames(LibraryElement? library) {
-    if (library == null) {
-      return [];
-    }
-
-    final exportList = <String>[];
-    for (final libraryExport in library.firstFragment.libraryExports) {
-      final temp = libraryExport.exportedLibrary?.identifier;
-      if (temp != null) {
-        exportList.add(temp);
-      }
-      exportList.addAll(_getAllExportFileNames(libraryExport.exportedLibrary));
-    }
-    return exportList;
+  (String, String)? _getNameRecord(
+    (AnalyzedDartType, AnalyzedDartType) typeRecord,
+  ) {
+    return (typeRecord.$1.nameWithAlias, typeRecord.$2.nameWithAlias);
   }
 }
