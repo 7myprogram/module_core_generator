@@ -6,8 +6,8 @@ import 'package:module_core_annotation/module_core_annotation.dart';
 import 'utils/check.dart';
 import 'configs/entrypoint.dart';
 import 'templates/entrypoint.dart';
-import 'helpers/import_alias_map.dart';
 import 'helpers/analyzed_dart_type.dart';
+import 'helpers/library_analyzer.dart';
 
 class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
   /// 解析対象のクラス名
@@ -42,8 +42,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
     final library = await buildStep.resolver.libraryFor(buildStep.inputId);
 
-    // インポートファイルのエイリアスを取得
-    ImportAliasMap().init(library);
+    LibraryAnalyzer().init(library);
 
     _analyze(element, library);
 
