@@ -7,15 +7,14 @@ class Check {
     return value != null && value.type?.getDisplayString() == 'Type';
   }
 
-  static bool isListOfType(FieldElement element) {
+  static bool isSetOfType(FieldElement element) {
     final value = element.computeConstantValue();
-    return value != null && value.type?.getDisplayString() == 'List<Type>';
+    return value != null && value.type?.getDisplayString() == 'Set<Type>';
   }
 
-  static bool isListOfRecordTypeType(FieldElement element) {
+  static bool isTypeTypeMap(FieldElement element) {
     final value = element.computeConstantValue();
-    return value != null &&
-        value.type?.getDisplayString() == 'List<(Type, Type)>';
+    return value != null && value.type?.getDisplayString() == 'Map<Type, Type>';
   }
 
   static bool isSubclassOf(ClassElement element, String targetName) {

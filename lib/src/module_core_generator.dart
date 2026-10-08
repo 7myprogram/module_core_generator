@@ -80,14 +80,14 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
   // データソースのリストを取得
   void _checkAndGetDataSources(FieldElement field) {
-    if (!Check.isListOfRecordTypeType(field)) {
+    if (!Check.isTypeTypeMap(field)) {
       throw InvalidGenerationSourceError(
-        '$_className: dataSourcesの型がList<(Type,Type)>でない。',
+        '$_className: dataSourcesの型がMap<Type,Type>でない。',
         element: field,
       );
     }
 
-    final dataSources = field.computeConstantValue()?.toListValue();
+    final dataSources = field.computeConstantValue()?.toMapValue();
     if (dataSources == null) {
       throw InvalidGenerationSourceError(
         '$_className: dataSourcesの内容の取得に失敗。',
@@ -95,46 +95,41 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
       );
     }
 
-    for (int i = 0; i < dataSources.length; ++i) {
-      final record = dataSources[i].toRecordValue()?.positional;
-      if (record == null || record.length < 2) {
-        throw InvalidGenerationSourceError(
-          '$_className: dataSourcesの解析に失敗。',
-          element: field,
-        );
-      }
-      if (!Check.hasDefaultConstructor(record[1].toTypeValue())) {
-        throw InvalidGenerationSourceError(
-          '$_className: データソースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
-          element: field,
-        );
-      }
-      final first = record[0].toTypeValue();
-      final second = record[1].toTypeValue();
-      if (first == null || second == null) {
+    for (final dataSource in dataSources.entries) {
+      final intf = dataSource.key?.toTypeValue();
+      final impl = dataSource.value?.toTypeValue();
+
+      if (intf == null || impl == null) {
         throw InvalidGenerationSourceError(
           '$_className: dataSourcesの型変換に失敗。',
           element: field,
         );
       }
 
+      if (!Check.hasDefaultConstructor(impl)) {
+        throw InvalidGenerationSourceError(
+          '$_className: データソースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          element: field,
+        );
+      }
+
       _dataSources.add((
-        AnalyzedDartType(value: first),
-        AnalyzedDartType(value: second),
+        AnalyzedDartType(value: intf),
+        AnalyzedDartType(value: impl),
       ));
     }
   }
 
   // リポジトリのリストを取得
   void _checkAndGetRepositories(FieldElement field) {
-    if (!Check.isListOfRecordTypeType(field)) {
+    if (!Check.isTypeTypeMap(field)) {
       throw InvalidGenerationSourceError(
         '$_className: repositoriesの型がList<(Type,Type)>でない。',
         element: field,
       );
     }
 
-    final repositories = field.computeConstantValue()?.toListValue();
+    final repositories = field.computeConstantValue()?.toMapValue();
     if (repositories == null) {
       throw InvalidGenerationSourceError(
         '$_className: repositoriesの内容の取得に失敗。',
@@ -142,45 +137,41 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
       );
     }
 
-    for (int i = 0; i < repositories.length; ++i) {
-      final record = repositories[i].toRecordValue()?.positional;
-      if (record == null || record.length < 2) {
-        throw InvalidGenerationSourceError(
-          '$_className: repositoriesの解析に失敗。',
-          element: field,
-        );
-      }
-      if (!Check.hasDefaultConstructor(record[1].toTypeValue())) {
-        throw InvalidGenerationSourceError(
-          '$_className: リポジトリの実装クラスはデフォルトコンストラクタを保持していなければならない。',
-          element: field,
-        );
-      }
-      final first = record[0].toTypeValue();
-      final second = record[1].toTypeValue();
-      if (first == null || second == null) {
+    for (final repository in repositories.entries) {
+      final intf = repository.key?.toTypeValue();
+      final impl = repository.value?.toTypeValue();
+
+      if (intf == null || impl == null) {
         throw InvalidGenerationSourceError(
           '$_className: repositoriesの型変換に失敗。',
           element: field,
         );
       }
+
+      if (!Check.hasDefaultConstructor(impl)) {
+        throw InvalidGenerationSourceError(
+          '$_className: リポジトリの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          element: field,
+        );
+      }
+
       _repositories.add((
-        AnalyzedDartType(value: first),
-        AnalyzedDartType(value: second),
+        AnalyzedDartType(value: intf),
+        AnalyzedDartType(value: impl),
       ));
     }
   }
 
   // ユースケースのリストを取得
   void _checkAndGetUsecases(FieldElement field) {
-    if (!Check.isListOfType(field)) {
+    if (!Check.isSetOfType(field)) {
       throw InvalidGenerationSourceError(
-        '$_className: usecasesの型がList<Type>でない。',
+        '$_className: Set<Type>でない。',
         element: field,
       );
     }
 
-    final usecases = field.computeConstantValue()?.toListValue();
+    final usecases = field.computeConstantValue()?.toSetValue();
     if (usecases == null) {
       throw InvalidGenerationSourceError(
         '$_className: usecasesの内容の取得に失敗。',
@@ -188,34 +179,34 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
       );
     }
 
-    for (int i = 0; i < usecases.length; ++i) {
-      final usecase = usecases[i].toTypeValue();
-      if (usecase == null) {
+    for (final usecase in usecases) {
+      final uType = usecase.toTypeValue();
+      if (uType == null) {
         throw InvalidGenerationSourceError(
           '$_className: usecasesの解析に失敗。',
           element: field,
         );
       }
-      if (!Check.hasDefaultConstructor(usecase)) {
+      if (!Check.hasDefaultConstructor(uType)) {
         throw InvalidGenerationSourceError(
           '$_className: ユースケースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
           element: field,
         );
       }
-      _usecases.add(AnalyzedDartType(value: usecase));
+      _usecases.add(AnalyzedDartType(value: uType));
     }
   }
 
   // ビュービルダーのリストを取得
   void _checkAndGetViewBuilders(FieldElement field) {
-    if (!Check.isListOfType(field)) {
+    if (!Check.isTypeTypeMap(field)) {
       throw InvalidGenerationSourceError(
-        '$_className: viewBuildersの型がList<Type>でない。',
+        '$_className: viewBuildersの型がMap<Type,Type>でない。',
         element: field,
       );
     }
 
-    final viewBuilders = field.computeConstantValue()?.toListValue();
+    final viewBuilders = field.computeConstantValue()?.toMapValue();
     if (viewBuilders == null) {
       throw InvalidGenerationSourceError(
         '$_className: viewBuildersの内容の取得に失敗。',
@@ -223,39 +214,47 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
       );
     }
 
-    for (int i = 0; i < viewBuilders.length; ++i) {
-      final viewBuilder = viewBuilders[i].toTypeValue();
-      if (viewBuilder == null) {
+    for (final entry in viewBuilders.entries) {
+      final viewBuilderType = entry.key?.toTypeValue();
+      final screenType = entry.value?.toTypeValue();
+
+      if (viewBuilderType == null || screenType == null) {
         throw InvalidGenerationSourceError(
-          '$_className: viewBuildersの解析に失敗。',
+          '$_className: viewBuildersの型変換に失敗。',
           element: field,
         );
       }
 
-      final element = viewBuilder.element;
-      if (element is! ClassElement) {
+      final viewBuilderElement = viewBuilderType.element;
+      if (viewBuilderElement is! ClassElement) {
         throw InvalidGenerationSourceError(
-          '$_className: viewBuilders内の型はクラスでなければならない。',
+          '$_className: viewBuildersのキーはクラスでなければならない。',
           element: field,
         );
       }
-      if (!Check.isSubclassOf(element, 'ViewBuilderAttachment')) {
+      if (!Check.isSubclassOf(viewBuilderElement, 'ViewBuilderAttachment')) {
         throw InvalidGenerationSourceError(
-          '$_className: viewBuilders内のクラスはViewBuilderAttachmentを継承していなければならない。',
+          '$_className: viewBuilderはViewBuilderAttachmentを継承していなければならない。',
+          element: field,
+        );
+      }
+
+      final viewBuilderTypeArgument = viewBuilderElement.allSupertypes
+          .where((elem) {
+            return elem.element.name == 'ViewBuilderAttachment';
+          })
+          .first
+          .typeArguments[0];
+      if (screenType.toString() != viewBuilderTypeArgument.toString()) {
+        throw InvalidGenerationSourceError(
+          '$_className: ViewBuilderAttachmentの型引数とScreenは同じ型でなければならない。',
           element: field,
         );
       }
 
       _viewBuilderAndScreens.add((
-        AnalyzedDartType(value: viewBuilder),
-        AnalyzedDartType(
-          value: element.allSupertypes
-              .where((elem) {
-                return elem.element.name == 'ViewBuilderAttachment';
-              })
-              .first
-              .typeArguments[0],
-        ),
+        AnalyzedDartType(value: viewBuilderType),
+        AnalyzedDartType(value: screenType),
       ));
     }
   }
