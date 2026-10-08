@@ -16,33 +16,24 @@ class LibraryAnalyzer {
   }
 
   String? getAlias(DartType type) {
+    final typeElement = type.element;
+    if (typeElement == null) {
+      return null;
+    }
     for (final frag in library.fragments) {
       for (final libImp in frag.libraryImports) {
         final alias = libImp.prefix?.name;
-        if (alias == null) {
+        final importedElement = libImp.importedLibrary?.exportNamespace.get2(
+          typeElement.displayName,
+        );
+        if (alias == null || importedElement == null) {
           continue;
         }
-        final impLib = libImp.importedLibrary;
-        if (impLib != null && _checkExport(impLib, type)) {
+        if (importedElement == typeElement) {
           return alias;
         }
       }
     }
     return null;
-  }
-
-  bool _checkExport(LibraryElement lib, DartType type) {
-    for (final frag in lib.fragments) {
-      for (final libExp in frag.libraryExports) {
-        final expLib = libExp.exportedLibrary;
-        if (expLib?.identifier == type.element?.library?.identifier) {
-          return true;
-        }
-        if (expLib != null && _checkExport(expLib, type)) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 }
