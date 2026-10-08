@@ -8,6 +8,8 @@ class CoreTemplate {
   @override
   String toString() {
     return '''
+    \$${_config.moduleName}Core create${_config.moduleName}() => \$${_config.moduleName}Core();
+
     class \$${_config.moduleName}Core extends Core<
       \$I${_config.moduleName}DataModule,
       \$I${_config.moduleName}DomainModule,
