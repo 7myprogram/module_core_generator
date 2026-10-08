@@ -8,7 +8,9 @@ class CoreTemplate {
   @override
   String toString() {
     return '''
-    \$${_config.moduleName}Core create${_config.moduleName}() => \$${_config.moduleName}Core();
+    typedef ${_config.moduleName}Product = \$${_config.moduleName}Core;
+
+    ${_config.moduleName}Product create${_config.moduleName}() => \$${_config.moduleName}Core();
 
     class \$${_config.moduleName}Core extends Core<
       \$I${_config.moduleName}DataModule,
