@@ -1,37 +1,29 @@
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
 
 class Check {
-  static bool isType(FieldElement element) {
+  static bool checkType(FieldElement element, Type type) {
     final value = element.computeConstantValue();
-    return value != null && value.type?.getDisplayString() == 'Type';
+    return value != null && value.type?.getDisplayString() == type.toString();
   }
 
-  static bool isSetOfType(FieldElement element) {
-    final value = element.computeConstantValue();
-    return value != null && value.type?.getDisplayString() == 'Set<Type>';
-  }
-
-  static bool isTypeTypeMap(FieldElement element) {
-    final value = element.computeConstantValue();
-    return value != null && value.type?.getDisplayString() == 'Map<Type, Type>';
-  }
-
-  static bool isSubclassOf(ClassElement element, String targetName) {
-    return element.allSupertypes.any((type) => type.element.name == targetName);
-  }
-
-  static bool hasDefaultConstructor(DartType? type) {
-    if (type == null) {
+  static bool isSubclassOf(
+    ClassElement element, {
+    Type? type,
+    String? typeName,
+    bool hasTypeArgs = false,
+  }) {
+    if (type == null && typeName == null) {
       return false;
     }
-
-    final element = type.element;
-    if (element is! ClassElement) {
-      return false;
+    String name = typeName ?? type.toString();
+    if (hasTypeArgs) {
+      name = name.replaceAll(RegExp(r'<.*>'), '');
     }
+    return element.allSupertypes.any((type) => type.element.name == name);
+  }
 
-    final constructors = element.constructors;
+  static bool hasDefaultConstructor(ClassElement classElement) {
+    final constructors = classElement.constructors;
     for (final constructor in constructors) {
       if (constructor.isDefaultConstructor) {
         return true;

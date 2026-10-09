@@ -80,7 +80,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
   // データソースのリストを取得
   void _checkAndGetDataSources(FieldElement field) {
-    if (!Check.isTypeTypeMap(field)) {
+    if (!Check.checkType(field, Map<Type, Type>)) {
       throw InvalidGenerationSourceError(
         '$_className: dataSourcesの型がMap<Type,Type>でない。',
         element: field,
@@ -106,9 +106,18 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         );
       }
 
-      if (!Check.hasDefaultConstructor(impl)) {
+      final classIntf = intf.element;
+      final classImpl = impl.element;
+      if (classIntf is! ClassElement || classImpl is! ClassElement) {
         throw InvalidGenerationSourceError(
-          '$_className: データソースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          '$_className: dataSourcesに登録される型はクラスでなければならない。',
+          element: field,
+        );
+      }
+
+      if (!Check.hasDefaultConstructor(classImpl)) {
+        throw InvalidGenerationSourceError(
+          '$_className[${classImpl.name}]: データソースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
           element: field,
         );
       }
@@ -122,7 +131,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
   // リポジトリのリストを取得
   void _checkAndGetRepositories(FieldElement field) {
-    if (!Check.isTypeTypeMap(field)) {
+    if (!Check.checkType(field, Map<Type, Type>)) {
       throw InvalidGenerationSourceError(
         '$_className: repositoriesの型がList<(Type,Type)>でない。',
         element: field,
@@ -148,9 +157,32 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
         );
       }
 
-      if (!Check.hasDefaultConstructor(impl)) {
+      final classIntf = intf.element;
+      final classImpl = impl.element;
+      if (classIntf is! ClassElement || classImpl is! ClassElement) {
         throw InvalidGenerationSourceError(
-          '$_className: リポジトリの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          '$_className: repositoriesに登録される型はクラスでなければならない。',
+          element: field,
+        );
+      }
+
+      if (!Check.isSubclassOf(classImpl, typeName: classIntf.name)) {
+        throw InvalidGenerationSourceError(
+          '$_className[${classImpl.name}]: リポジトリの実装クラスが抽象クラスを継承していない。',
+          element: field,
+        );
+      }
+
+      if (!Check.isSubclassOf(classImpl, type: RepositoryAttachment)) {
+        throw InvalidGenerationSourceError(
+          '$_className[${classImpl.name}]: リポジトリの実装クラスはRepositoryAttachmentを継承していなければならない。',
+          element: field,
+        );
+      }
+
+      if (!Check.hasDefaultConstructor(classImpl)) {
+        throw InvalidGenerationSourceError(
+          '$_className[${classImpl.name}]: リポジトリの実装クラスはデフォルトコンストラクタを保持していなければならない。',
           element: field,
         );
       }
@@ -164,7 +196,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
 
   // ユースケースのリストを取得
   void _checkAndGetUsecases(FieldElement field) {
-    if (!Check.isSetOfType(field)) {
+    if (!Check.checkType(field, Set<Type>)) {
       throw InvalidGenerationSourceError(
         '$_className: Set<Type>でない。',
         element: field,
@@ -180,26 +212,40 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     }
 
     for (final usecase in usecases) {
-      final uType = usecase.toTypeValue();
-      if (uType == null) {
+      final type = usecase.toTypeValue();
+      if (type == null) {
         throw InvalidGenerationSourceError(
           '$_className: usecasesの解析に失敗。',
           element: field,
         );
       }
-      if (!Check.hasDefaultConstructor(uType)) {
+
+      final classElement = type.element;
+      if (classElement is! ClassElement) {
         throw InvalidGenerationSourceError(
-          '$_className: ユースケースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          '$_className: usecasesに登録される型はクラスでなければならない。',
           element: field,
         );
       }
-      _usecases.add(AnalyzedDartType(value: uType));
+      if (!Check.isSubclassOf(classElement, type: UsecaseAttachment)) {
+        throw InvalidGenerationSourceError(
+          '$_className[${classElement.name}]: ユースケースの実装クラスはUsecaseAttachmentを継承していなければならない。',
+          element: field,
+        );
+      }
+      if (!Check.hasDefaultConstructor(classElement)) {
+        throw InvalidGenerationSourceError(
+          '$_className[${classElement.name}]: ユースケースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
+          element: field,
+        );
+      }
+      _usecases.add(AnalyzedDartType(value: type));
     }
   }
 
   // ビュービルダーのリストを取得
   void _checkAndGetViewBuilders(FieldElement field) {
-    if (!Check.isTypeTypeMap(field)) {
+    if (!Check.checkType(field, Map<Type, Type>)) {
       throw InvalidGenerationSourceError(
         '$_className: viewBuildersの型がMap<Type,Type>でない。',
         element: field,
@@ -232,9 +278,13 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           element: field,
         );
       }
-      if (!Check.isSubclassOf(viewBuilderElement, 'ViewBuilderAttachment')) {
+      if (!Check.isSubclassOf(
+        viewBuilderElement,
+        type: ViewBuilderAttachment,
+        hasTypeArgs: true,
+      )) {
         throw InvalidGenerationSourceError(
-          '$_className: viewBuilderはViewBuilderAttachmentを継承していなければならない。',
+          '$_className[${viewBuilderElement.name}]: viewBuilderはViewBuilderAttachmentを継承していなければならない。',
           element: field,
         );
       }
@@ -247,7 +297,7 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
           .typeArguments[0];
       if (screenType.toString() != viewBuilderTypeArgument.toString()) {
         throw InvalidGenerationSourceError(
-          '$_className: ViewBuilderAttachmentの型引数とScreenは同じ型でなければならない。',
+          '$_className[${viewBuilderElement.name}]: ViewBuilderAttachmentの型引数とScreenは同じ型でなければならない。',
           element: field,
         );
       }
