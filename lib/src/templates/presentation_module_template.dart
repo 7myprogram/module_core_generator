@@ -31,6 +31,6 @@ class PresentationModuleTemplate {
   }
 
   String _makeBuildScreenFunctionDefinition(String builder, String screen) {
-    return "$screen build${screen.replaceAll(RegExp(r'^.*\.'), '')}By${builder.replaceAll(RegExp(r'^.*\.'), '')}({dynamic args})";
+    return "$screen buildScreenBy${builder.replaceAll(RegExp(r'^.*\.'), '')}({dynamic args})";
   }
 }

@@ -2,18 +2,9 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/element.dart';
 
 class LibraryAnalyzer {
-  late final LibraryElement library;
-  static final LibraryAnalyzer _instance = LibraryAnalyzer._();
+  final LibraryElement library;
 
-  factory LibraryAnalyzer() {
-    return _instance;
-  }
-
-  LibraryAnalyzer._();
-
-  void init(LibraryElement lib) {
-    library = lib;
-  }
+  LibraryAnalyzer({required this.library});
 
   String? getAlias(DartType type) {
     final typeElement = type.element;
