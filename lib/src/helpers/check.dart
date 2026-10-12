@@ -1,11 +1,6 @@
 import 'package:analyzer/dart/element/element.dart';
 
 class Check {
-  static bool checkType(FieldElement element, Type type) {
-    final value = element.computeConstantValue();
-    return value != null && value.type?.getDisplayString() == type.toString();
-  }
-
   static bool isSubclassOf(
     ClassElement element, {
     Type? type,

@@ -15,19 +15,14 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
     ConstantReader annotation,
     BuildStep buildStep,
   ) async {
-    if (element is! ClassElement) {
+    if (element is! LibraryElement) {
       throw InvalidGenerationSourceError(
-        '@ModuleCoreクラス以外の処理不可 ${element.name}',
+        '@ModuleCoreアノテーションはlibraryに付与。 ${element.name}',
         element: element,
       );
     }
 
-    final inputAnalyzer = InputAnalyzer(
-      element: element,
-      library: await buildStep.resolver.libraryFor(buildStep.inputId),
-    );
-
-    inputAnalyzer.analyze();
+    final inputAnalyzer = InputAnalyzer(library: element);
 
     final dataModuleBuffer = StringBuffer()
       ..writeln(_writeCore(className: inputAnalyzer.className))

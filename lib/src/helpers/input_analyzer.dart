@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -8,11 +9,8 @@ import 'analyzed_dart_type.dart';
 import 'library_analyzer.dart';
 
 class InputAnalyzer {
-  /// 解析対象のクラスエレメント
-  final ClassElement _element;
-
   /// 解析対象のクラス名
-  final String className;
+  late final String className;
 
   /// 解析対象のライブラリエレメント
   final LibraryAnalyzer _libraryAnalyzer;
@@ -29,59 +27,42 @@ class InputAnalyzer {
   /// ビュービルダー/Screenリスト
   final List<(AnalyzedDartType, AnalyzedDartType)> viewBuilderAndScreens = [];
 
-  InputAnalyzer({required this._element, required LibraryElement library})
-    : className = _element.displayName,
-      _libraryAnalyzer = LibraryAnalyzer(library: library);
+  InputAnalyzer({required LibraryElement library})
+    : _libraryAnalyzer = LibraryAnalyzer(library: library) {
+    for (final annotation in library.metadata.annotations) {
+      final value = annotation.computeConstantValue();
 
-  void analyze() {
-    final fields = _element.fields;
-    for (final field in fields) {
-      switch (field.name) {
-        // データソース取得
-        case 'dataSources':
-          _checkAndGetDataSources(field);
-
-        // リポジトリ取得
-        case 'repositories':
-          _checkAndGetRepositories(field);
-
-        // ユースケース取得
-        case 'usecases':
-          _checkAndGetUsecases(field);
-
-        // ビュービルダー取得
-        case 'viewBuilders':
-          _checkAndGetViewBuilders(field);
+      if (value == null ||
+          (value.type?.getDisplayString() != (ModuleCore).toString())) {
+        continue;
       }
+
+      final reader = ConstantReader(value);
+
+      final libraryName = reader.read('libraryName');
+      if (libraryName.isString) {
+        className = libraryName.stringValue;
+      } else {
+        className = _getFileNameAsCamelCase(library);
+      }
+      _checkAndGetDataSources(reader.read('dataSources').mapValue);
+      _checkAndGetRepositories(reader.read('repositories').mapValue);
+      _checkAndGetUsecases(reader.read('usecases').setValue);
+      _checkAndGetViewBuilders(reader.read('viewBuilders').mapValue);
+      return;
     }
+
+    throw InvalidGenerationSourceError('$className: アノテーションの読み込みに失敗。');
   }
 
   // データソースのリストを取得
-  void _checkAndGetDataSources(FieldElement field) {
-    if (!Check.checkType(field, Map<Type, Type>)) {
-      throw InvalidGenerationSourceError(
-        '$className: dataSourcesの型がMap<Type,Type>でない。',
-        element: field,
-      );
-    }
-
-    final dataSources = field.computeConstantValue()?.toMapValue();
-    if (dataSources == null) {
-      throw InvalidGenerationSourceError(
-        '$className: dataSourcesの内容の取得に失敗。',
-        element: field,
-      );
-    }
-
-    for (final dataSource in dataSources.entries) {
-      final intf = dataSource.key?.toTypeValue();
-      final impl = dataSource.value?.toTypeValue();
+  void _checkAndGetDataSources(Map<DartObject?, DartObject?> values) {
+    for (final entry in values.entries) {
+      final intf = entry.key?.toTypeValue();
+      final impl = entry.value?.toTypeValue();
 
       if (intf == null || impl == null) {
-        throw InvalidGenerationSourceError(
-          '$className: dataSourcesの型変換に失敗。',
-          element: field,
-        );
+        throw InvalidGenerationSourceError('$className: dataSourcesの型変換に失敗。');
       }
 
       final classIntf = intf.element;
@@ -89,18 +70,16 @@ class InputAnalyzer {
       if (classIntf is! ClassElement || classImpl is! ClassElement) {
         throw InvalidGenerationSourceError(
           '$className: dataSourcesに登録される型はクラスでなければならない。',
-          element: field,
         );
       }
 
       if (!Check.hasDefaultConstructor(classImpl)) {
         throw InvalidGenerationSourceError(
           '$className[${classImpl.name}]: データソースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
-          element: field,
         );
       }
 
-      this.dataSources.add((
+      dataSources.add((
         getAnalyzedDartType(value: intf),
         getAnalyzedDartType(value: impl),
       ));
@@ -108,31 +87,13 @@ class InputAnalyzer {
   }
 
   // リポジトリのリストを取得
-  void _checkAndGetRepositories(FieldElement field) {
-    if (!Check.checkType(field, Map<Type, Type>)) {
-      throw InvalidGenerationSourceError(
-        '$className: repositoriesの型がList<(Type,Type)>でない。',
-        element: field,
-      );
-    }
-
-    final repositories = field.computeConstantValue()?.toMapValue();
-    if (repositories == null) {
-      throw InvalidGenerationSourceError(
-        '$className: repositoriesの内容の取得に失敗。',
-        element: field,
-      );
-    }
-
-    for (final repository in repositories.entries) {
-      final intf = repository.key?.toTypeValue();
-      final impl = repository.value?.toTypeValue();
+  void _checkAndGetRepositories(Map<DartObject?, DartObject?> values) {
+    for (final entry in values.entries) {
+      final intf = entry.key?.toTypeValue();
+      final impl = entry.value?.toTypeValue();
 
       if (intf == null || impl == null) {
-        throw InvalidGenerationSourceError(
-          '$className: repositoriesの型変換に失敗。',
-          element: field,
-        );
+        throw InvalidGenerationSourceError('$className: repositoriesの型変換に失敗。');
       }
 
       final classIntf = intf.element;
@@ -140,32 +101,28 @@ class InputAnalyzer {
       if (classIntf is! ClassElement || classImpl is! ClassElement) {
         throw InvalidGenerationSourceError(
           '$className: repositoriesに登録される型はクラスでなければならない。',
-          element: field,
         );
       }
 
       if (!Check.isSubclassOf(classImpl, typeName: classIntf.name)) {
         throw InvalidGenerationSourceError(
           '$className[${classImpl.name}]: リポジトリの実装クラスが抽象クラスを継承していない。',
-          element: field,
         );
       }
 
       if (!Check.isSubclassOf(classImpl, type: RepositoryAttachment)) {
         throw InvalidGenerationSourceError(
           '$className[${classImpl.name}]: リポジトリの実装クラスはRepositoryAttachmentを継承していなければならない。',
-          element: field,
         );
       }
 
       if (!Check.hasDefaultConstructor(classImpl)) {
         throw InvalidGenerationSourceError(
           '$className[${classImpl.name}]: リポジトリの実装クラスはデフォルトコンストラクタを保持していなければならない。',
-          element: field,
         );
       }
 
-      this.repositories.add((
+      repositories.add((
         getAnalyzedDartType(value: intf),
         getAnalyzedDartType(value: impl),
       ));
@@ -173,87 +130,47 @@ class InputAnalyzer {
   }
 
   // ユースケースのリストを取得
-  void _checkAndGetUsecases(FieldElement field) {
-    if (!Check.checkType(field, Set<Type>)) {
-      throw InvalidGenerationSourceError(
-        '$className: Set<Type>でない。',
-        element: field,
-      );
-    }
-
-    final usecases = field.computeConstantValue()?.toSetValue();
-    if (usecases == null) {
-      throw InvalidGenerationSourceError(
-        '$className: usecasesの内容の取得に失敗。',
-        element: field,
-      );
-    }
-
-    for (final usecase in usecases) {
-      final type = usecase.toTypeValue();
+  void _checkAndGetUsecases(Set<DartObject> values) {
+    for (final value in values) {
+      final type = value.toTypeValue();
       if (type == null) {
-        throw InvalidGenerationSourceError(
-          '$className: usecasesの解析に失敗。',
-          element: field,
-        );
+        throw InvalidGenerationSourceError('$className: usecasesの解析に失敗。');
       }
 
       final classElement = type.element;
       if (classElement is! ClassElement) {
         throw InvalidGenerationSourceError(
           '$className: usecasesに登録される型はクラスでなければならない。',
-          element: field,
         );
       }
       if (!Check.isSubclassOf(classElement, type: UsecaseAttachment)) {
         throw InvalidGenerationSourceError(
           '$className[${classElement.name}]: ユースケースの実装クラスはUsecaseAttachmentを継承していなければならない。',
-          element: field,
         );
       }
       if (!Check.hasDefaultConstructor(classElement)) {
         throw InvalidGenerationSourceError(
           '$className[${classElement.name}]: ユースケースの実装クラスはデフォルトコンストラクタを保持していなければならない。',
-          element: field,
         );
       }
-      this.usecases.add(getAnalyzedDartType(value: type));
+      usecases.add(getAnalyzedDartType(value: type));
     }
   }
 
   // ビュービルダーのリストを取得
-  void _checkAndGetViewBuilders(FieldElement field) {
-    if (!Check.checkType(field, Map<Type, Type>)) {
-      throw InvalidGenerationSourceError(
-        '$className: viewBuildersの型がMap<Type,Type>でない。',
-        element: field,
-      );
-    }
-
-    final viewBuilders = field.computeConstantValue()?.toMapValue();
-    if (viewBuilders == null) {
-      throw InvalidGenerationSourceError(
-        '$className: viewBuildersの内容の取得に失敗。',
-        element: field,
-      );
-    }
-
-    for (final entry in viewBuilders.entries) {
+  void _checkAndGetViewBuilders(Map<DartObject?, DartObject?> values) {
+    for (final entry in values.entries) {
       final viewBuilderType = entry.key?.toTypeValue();
       final screenType = entry.value?.toTypeValue();
 
       if (viewBuilderType == null || screenType == null) {
-        throw InvalidGenerationSourceError(
-          '$className: viewBuildersの型変換に失敗。',
-          element: field,
-        );
+        throw InvalidGenerationSourceError('$className: viewBuildersの型変換に失敗。');
       }
 
       final viewBuilderElement = viewBuilderType.element;
       if (viewBuilderElement is! ClassElement) {
         throw InvalidGenerationSourceError(
           '$className: viewBuildersのキーはクラスでなければならない。',
-          element: field,
         );
       }
       if (!Check.isSubclassOf(
@@ -263,7 +180,6 @@ class InputAnalyzer {
       )) {
         throw InvalidGenerationSourceError(
           '$className[${viewBuilderElement.name}]: viewBuilderはViewBuilderAttachmentを継承していなければならない。',
-          element: field,
         );
       }
 
@@ -276,7 +192,6 @@ class InputAnalyzer {
       if (screenType.toString() != viewBuilderTypeArgument.toString()) {
         throw InvalidGenerationSourceError(
           '$className[${viewBuilderElement.name}]: ViewBuilderAttachmentの型引数とScreenは同じ型でなければならない。',
-          element: field,
         );
       }
 
@@ -292,5 +207,18 @@ class InputAnalyzer {
       value: value,
       alias: _libraryAnalyzer.getAlias(value),
     );
+  }
+
+  static String _getFileNameAsCamelCase(LibraryElement lib) {
+    // ファイル名のみ抽出
+    final fileName = lib.identifier
+        .replaceAll(RegExp(r'^.*/'), '')
+        .replaceAll(RegExp(r'\.[^\.]*$'), '');
+
+    // 不要な文字を削除しキャメルケース変換
+    return fileName.split(RegExp(r'[^a-zA-Z0-9]+')).map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1);
+    }).join();
   }
 }

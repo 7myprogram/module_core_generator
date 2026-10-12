@@ -8,16 +8,14 @@ class CoreTemplate {
   @override
   String toString() {
     return '''
-    typedef ${_config.moduleName}Product = \$${_config.moduleName}Core;
+    ${_config.moduleName}Product create${_config.moduleName}() => ${_config.moduleName}Product();
 
-    ${_config.moduleName}Product create${_config.moduleName}() => \$${_config.moduleName}Core();
-
-    class \$${_config.moduleName}Core extends Core<
+    class ${_config.moduleName}Product extends Core<
       \$I${_config.moduleName}DataModule,
       \$I${_config.moduleName}DomainModule,
       \$I${_config.moduleName}PresentationModule
     > {
-      \$${_config.moduleName}Core()
+      ${_config.moduleName}Product()
         :super(
           data: _\$${_config.moduleName}DataModule(),
           domain: _\$${_config.moduleName}DomainModule(),
