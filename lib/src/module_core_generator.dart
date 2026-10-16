@@ -22,7 +22,10 @@ class ModuleCoreGenerator extends GeneratorForAnnotation<ModuleCore> {
       );
     }
 
-    final inputAnalyzer = InputAnalyzer(library: element);
+    final inputAnalyzer = InputAnalyzer(
+      library: element,
+      annotation: annotation,
+    );
 
     final dataModuleBuffer = StringBuffer()
       ..writeln(_writeCore(className: inputAnalyzer.className))

@@ -27,32 +27,20 @@ class InputAnalyzer {
   /// ビュービルダー/Screenリスト
   final List<(AnalyzedDartType, AnalyzedDartType)> viewBuilderAndScreens = [];
 
-  InputAnalyzer({required LibraryElement library})
-    : _libraryAnalyzer = LibraryAnalyzer(library: library) {
-    for (final annotation in library.metadata.annotations) {
-      final value = annotation.computeConstantValue();
-
-      if (value == null ||
-          (value.type?.getDisplayString() != (ModuleCore).toString())) {
-        continue;
-      }
-
-      final reader = ConstantReader(value);
-
-      final libraryName = reader.read('libraryName');
-      if (libraryName.isString) {
-        className = libraryName.stringValue;
-      } else {
-        className = _getFileNameAsCamelCase(library);
-      }
-      _checkAndGetDataSources(reader.read('dataSources').mapValue);
-      _checkAndGetRepositories(reader.read('repositories').mapValue);
-      _checkAndGetUsecases(reader.read('usecases').setValue);
-      _checkAndGetViewBuilders(reader.read('viewBuilders').mapValue);
-      return;
+  InputAnalyzer({
+    required LibraryElement library,
+    required ConstantReader annotation,
+  }) : _libraryAnalyzer = LibraryAnalyzer(library: library) {
+    final libraryName = annotation.read('libraryName');
+    if (libraryName.isString) {
+      className = libraryName.stringValue;
+    } else {
+      className = _getFileNameAsCamelCase(library);
     }
-
-    throw InvalidGenerationSourceError('$className: アノテーションの読み込みに失敗。');
+    _checkAndGetDataSources(annotation.read('dataSources').mapValue);
+    _checkAndGetRepositories(annotation.read('repositories').mapValue);
+    _checkAndGetUsecases(annotation.read('usecases').setValue);
+    _checkAndGetViewBuilders(annotation.read('viewBuilders').mapValue);
   }
 
   // データソースのリストを取得
