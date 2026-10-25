@@ -1,3 +1,9 @@
+targets:
+  $default:
+    builders:
+      module_core_generator|module_core_builder:
+        generate_for:
+          - test/**
 builders:
   module_core_builder:
     import: "package:module_core_generator/module_core_builder.dart"
