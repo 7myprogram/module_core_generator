@@ -1,34 +1,34 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format width=80
 
-part of 'user_test.dart';
+part of 'test_module.dart';
 
 // **************************************************************************
 // ModuleCoreGenerator
 // **************************************************************************
 
-UserTestProduct createUserTest() => UserTestProduct();
+TestModuleProduct createTestModule() => TestModuleProduct();
 
-class UserTestProduct
+class TestModuleProduct
     extends
         Core<
-          $IUserTestDataModule,
-          $IUserTestDomainModule,
-          $IUserTestPresentationModule
+          $ITestModuleDataModule,
+          $ITestModuleDomainModule,
+          $ITestModulePresentationModule
         > {
-  UserTestProduct()
+  TestModuleProduct()
     : super(
-        data: _$UserTestDataModule(),
-        domain: _$UserTestDomainModule(),
-        presentation: _$UserTestPresentationModule(),
+        data: _$TestModuleDataModule(),
+        domain: _$TestModuleDomainModule(),
+        presentation: _$TestModulePresentationModule(),
       );
 }
 
-abstract class $IUserTestDataModule {}
+abstract class $ITestModuleDataModule {}
 
-final class _$UserTestDataModule
+final class _$TestModuleDataModule
     with DataModule
-    implements $IUserTestDataModule {
+    implements $ITestModuleDataModule {
   @override
   void registerDataSources(DataSourceCollection dataSourceCollection) {
     dataSourceCollection.register<i_data_source.DataSource1>(
@@ -53,11 +53,11 @@ final class _$UserTestDataModule
   }
 }
 
-abstract class $IUserTestDomainModule {}
+abstract class $ITestModuleDomainModule {}
 
-final class _$UserTestDomainModule
+final class _$TestModuleDomainModule
     with DomainModule
-    implements $IUserTestDomainModule {
+    implements $ITestModuleDomainModule {
   @override
   void registerUsecases(UsecaseCollection collection) {
     collection.register(Usecase1());
@@ -66,15 +66,15 @@ final class _$UserTestDomainModule
   }
 }
 
-abstract class $IUserTestPresentationModule {
+abstract class $ITestModulePresentationModule {
   Screen1 buildScreenByViewBuilder1({dynamic args});
   Screen2 buildScreenByViewBuilder2({dynamic args});
   Screen3 buildScreenByViewBuilder3({dynamic args});
 }
 
-final class _$UserTestPresentationModule
+final class _$TestModulePresentationModule
     with PresentationModule
-    implements $IUserTestPresentationModule {
+    implements $ITestModulePresentationModule {
   @override
   void registerViewBuilder(ViewBuilderCollection collection) {
     collection.register(ViewBuilder1());

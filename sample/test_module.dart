@@ -1,4 +1,5 @@
 @ModuleCore(
+  libraryName: "TestModule",
   dataSources: {
     i_data_source.DataSource1: data_source_impl.DataSource1,
     i_data_source.DataSource2: data_source_impl.DataSource2,
@@ -26,4 +27,4 @@ import 'repositories/implementations/entrypoint.dart' as repository_impl;
 import 'usecases/entrypoint.dart';
 import 'view_builders/entrypoint.dart';
 
-part 'user_test.module_core.dart';
+part 'test_module.module_core.dart';
