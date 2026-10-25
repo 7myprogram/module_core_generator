@@ -3,3 +3,5 @@
 .dart_tool/
 *.module_core.dart
 lib/src/source_for_test
+test/
+build.yaml
