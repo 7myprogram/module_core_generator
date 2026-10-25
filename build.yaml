@@ -2,6 +2,6 @@ builders:
   module_core_builder:
     import: "package:module_core_generator/module_core_builder.dart"
     builder_factories: ["moduleCoreBuilder"]
-    build_extensions: {".dart": [".g.dart"]}
+    build_extensions: {".dart": [".module_core.dart"]}
     auto_apply: dependents
     build_to: source
